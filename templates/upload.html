@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+        }
+        .webcam, .capture {
+            width: 45%;
+        }
+        .capture img {
+            width: 100%;
+        }
+        .actions {
+            margin-top: 20px;
+        }
+        #status {
+            margin-top: 10px;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <h1>Face Detection</h1>
+    <div class="container">
+        <div class="webcam">
+            <video id="video" width="100%" autoplay></video>
+            <button id="capture">Capture</button>
+        </div>
+        <div class="capture">
+            <img id="capturedImage" src="#" alt="Captured Image" />
+            <button id="upload" style="display: none;">Upload</button>
+            <div id="status"></div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const captureButton = document.getElementById('capture');
+        const uploadButton = document.getElementById('upload');
+        const capturedImage = document.getElementById('capturedImage');
+        const status = document.getElementById('status');
+
+        // Get access to the camera
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                console.error("Error accessing the camera: " + err);
+            });
+
+        captureButton.addEventListener('click', () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataURL = canvas.toDataURL('image/jpeg');
+            capturedImage.src = dataURL;
+            uploadButton.style.display = 'block';
+        });
+
+        uploadButton.addEventListener('click', () => {
+            const dataURL = capturedImage.src;
+            fetch('/capture', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `image_data=${encodeURIComponent(dataURL)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.person_name) {
+                    status.textContent = `${data.person_name} marked present.`;
+                } else {
+                    status.textContent = "No match found.";
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                status.textContent = "Error uploading image.";
+            });
+        });
+    </script>
+</body>
+</html>

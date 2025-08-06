@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Detection</title>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+</head>
+<body>
+    <h1>Face Detection</h1>
+    <div style="display: flex;">
+        <div style="flex: 1;">
+            <video id="video" width="100%" autoplay></video>
+            <button id="capture">Capture</button>
+        </div>
+        <div style="flex: 1;">
+            <img id="captured-image" src="" width="100%">
+            <button id="upload">Upload</button>
+        </div>
+    </div>
+    <div id="status"></div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.createElement('canvas');
+        const capturedImage = document.getElementById('captured-image');
+        const statusDiv = document.getElementById('status');
+
+        // Get access to the camera
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+                video.srcObject = stream;
+                video.play();
+            });
+        }
+
+        document.getElementById('capture').addEventListener('click', () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg');
+            capturedImage.src = dataUrl;
+        });
+
+        document.getElementById('upload').addEventListener('click', () => {
+            const imageData = capturedImage.src;
+            $.post('/capture', { image_data: imageData }, (response) => {
+                statusDiv.textContent = response.message + (response.person_name ? `: ${response.person_name}` : '');
+            }).fail(() => {
+                statusDiv.textContent = 'Failed to upload image';
+            });
+        });
+    </script>
+</body>
+</html>
